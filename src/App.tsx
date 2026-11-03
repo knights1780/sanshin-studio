@@ -1,122 +1,181 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import { useState } from "react";
+import type { SanshinTabNote } from "./features/tablature/converter";
+import { symbolToTab } from "./features/tablature/converter";
+import {
+  KUNKUNSHI_POSITIONS,
+  findSymbolByPosition,
+} from "./features/kunkunshi/symbols";
+import "./App.css";
+
+const STRINGS = [
+  { number: 3, name: "女弦", y: 40 },
+  { number: 2, name: "中弦", y: 85 },
+  { number: 1, name: "男弦", y: 130 },
+] as const;
+
+const COLUMN_WIDTH = 54;
+const LEFT_MARGIN = 78;
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [notes, setNotes] = useState<SanshinTabNote[]>([]);
+
+  function addNote(symbol: string) {
+    const id = crypto.randomUUID();
+    const note = symbolToTab(symbol, id);
+    setNotes((previous) => [...previous, note]);
+  }
+
+  function undo() {
+    setNotes((previous) => previous.slice(0, -1));
+  }
+
+  function clear() {
+    setNotes([]);
+  }
+
+  const svgWidth = Math.max(
+    650,
+    LEFT_MARGIN + notes.length * COLUMN_WIDTH + 40
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="app">
+      <header className="app-header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1>Sanshin Studio</h1>
+          <p>工工四・三線TAB譜エディター</p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <span className="version">Prototype 0.1</span>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <section className="panel">
+        <div className="section-header">
+          <h2>工工四入力</h2>
+          <span>{notes.length} 音</span>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+
+        <div className="symbol-grid">
+          {KUNKUNSHI_POSITIONS.map((item) => (
+            <button
+              key={`${item.string}-${item.position}`}
+              className="symbol-button"
+              onClick={() => addNote(item.symbol)}
+              title={`${item.string}弦 / 勘所 ${item.position}`}
+            >
+              {item.symbol}
+            </button>
+          ))}
+        </div>
+
+        <div className="toolbar">
+          <button onClick={undo} disabled={notes.length === 0}>
+            1音戻す
+          </button>
+          <button onClick={clear} disabled={notes.length === 0}>
+            すべて削除
+          </button>
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <section className="panel">
+        <h2>工工四</h2>
+
+        <div className="notation-sheet">
+          {notes.length === 0 ? (
+            <p className="placeholder">
+              上の記号を選択すると楽譜が表示されます。
+            </p>
+          ) : (
+            <div className="notation-notes">
+              {notes.map((note) => (
+                <div className="notation-note" key={note.id}>
+                  {findSymbolByPosition(
+                    note.string,
+                    note.position
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>三線TAB譜</h2>
+        <p className="description">
+          現在は勘所の順序を数字で表示しています。
+        </p>
+
+        <div className="tab-scroll">
+          <svg
+            width={svgWidth}
+            height={175}
+            viewBox={`0 0 ${svgWidth} 175`}
+            role="img"
+            aria-label="三線TAB譜"
+          >
+            {STRINGS.map((string) => (
+              <g key={string.number}>
+                <text
+                  x={12}
+                  y={string.y + 5}
+                  className="string-label"
+                >
+                  {string.name}
+                </text>
+                <line
+                  x1={LEFT_MARGIN}
+                  y1={string.y}
+                  x2={svgWidth - 20}
+                  y2={string.y}
+                  className="string-line"
+                />
+              </g>
+            ))}
+
+            {notes.map((note, index) => {
+              const target = STRINGS.find(
+                (item) => item.number === note.string
+              );
+
+              if (!target) return null;
+
+              const x =
+                LEFT_MARGIN +
+                30 +
+                index * COLUMN_WIDTH;
+
+              return (
+                <g key={note.id}>
+                  <rect
+                    x={x - 14}
+                    y={target.y - 15}
+                    width={28}
+                    height={30}
+                    rx={5}
+                    className="tab-note-background"
+                  />
+                  <text
+                    x={x}
+                    y={target.y + 6}
+                    textAnchor="middle"
+                    className="tab-note"
+                  >
+                    {note.position}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </section>
+
+      <footer>
+        Sanshin Studio — Kunkunshi & TAB Editor
+      </footer>
+    </main>
+  );
 }
 
-export default App
+export default App;
